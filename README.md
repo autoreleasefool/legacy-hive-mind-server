@@ -1,3 +1,5 @@
+![Logo](media/HiveServer.png)
+
 # HiveAI Server
 
 Backend access to the HiveMind.
