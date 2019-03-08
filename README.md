@@ -7,12 +7,12 @@ Backend access to the HiveMind.
 ## Getting started
 
 1. First, you'll need to grab a couple other repos to build the entire system and play a game of Hive against the HiveMind.
-    * [Hive Client](https://github.com/josephroqueca/hive-client)
-    * [Hive Server](https://github.com/josephroqueca/hive-server)
-    * [HiveMind](https://github.com/josephroqueca/hivemind)
+    * [Hive Client](https://github.com/josephroquedev/hive-client)
+    * [Hive Server](https://github.com/josephroquedev/hive-server)
+    * [HiveMind](https://github.com/josephroquedev/hivemind)
 2. `bundle install` to install dependencies, including [Ruby on Rails](https://github.com/rails/rails/)
 3. `rails s` to start the server
-    * You may need to update `app/controllers/hive_mind_controller.rb` to point to your clone of [HiveMind](https://github.com/josephroqueca/hivemind)
+    * You may need to update `app/controllers/hive_mind_controller.rb` to point to your clone of [HiveMind](https://github.com/josephroquedev/hivemind)
     * Currently, the app assumes the two repositories have been cloned within the same parent directory
 4. That's it! You've got a server running.
 
