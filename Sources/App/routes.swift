@@ -1,20 +1,19 @@
+//
+//  routes.swift
+//  App
+//
+//  Created by Joseph Roque on 2019-03-17.
+//
+
 import Vapor
+import HiveEngine
 
-/// Register your application's routes here.
 public func routes(_ router: Router) throws {
-	// Basic "It works" example
-	router.get { _ in
-		return "It works!"
-	}
+	let hiveMindController = HiveMindController()
+	router.post("new", use: hiveMindController.new)
+	router.post("play", use: hiveMindController.play)
+}
 
-	// Basic "Hello, world!" example
-	router.get("hello") { _ in
-		return "Hello, world!"
-	}
-
-	// Example of configuring a controller
-	let todoController = TodoController()
-	router.get("todos", use: todoController.index)
-	router.post("todos", use: todoController.create)
-	router.delete("todos", Todo.parameter, use: todoController.delete)
+struct Initialization: Content {
+	let playerIsFirst: Bool
 }
