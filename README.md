@@ -10,11 +10,14 @@ Backend access to the HiveMind.
     * [Hive Client](https://github.com/josephroquedev/hive-client)
     * [Hive Server](https://github.com/josephroquedev/hive-server)
     * [HiveMind](https://github.com/josephroquedev/hivemind)
-2. 
-2. `bundle install` to install dependencies, including [Ruby on Rails](https://github.com/rails/rails/)
-3. `rails s` to start the server
-    * You may need to update `app/controllers/hive_mind_controller.rb` to point to your clone of [HiveMind](https://github.com/josephroquedev/hivemind)
-    * Currently, the app assumes the two repositories have been cloned within the same parent directory
+2. Build the project
+    * `vapor xcode` to create Xcode project for contributing
+    * `swift build -Xswiftc "-target" -Xswiftc "x86_64-apple-macosx10.13"` to build without Xcode
+3. Start the server
+    * Start the `Run` scheme with Xcode
+    * Or, `.build/x86_64-apple-macosx10.10/debug/Run` to run without Xcode
+    * You may need to update `Sources/App/HiveMind/HiveMindProcess` to point to your clone of [HiveMind](https://github.com/josephroquedev/hivemind)
+        * Currently, the app assumes the two repositories have been cloned within the same parent directory
 4. That's it! You've got a server running.
 
 ### Requirements
