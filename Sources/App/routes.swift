@@ -3,12 +3,12 @@ import Vapor
 /// Register your application's routes here.
 public func routes(_ router: Router) throws {
 	// Basic "It works" example
-	router.get { req in
+	router.get { _ in
 		return "It works!"
 	}
 
 	// Basic "Hello, world!" example
-	router.get("hello") { req in
+	router.get("hello") { _ in
 		return "Hello, world!"
 	}
 

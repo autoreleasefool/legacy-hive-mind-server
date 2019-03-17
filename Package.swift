@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
 	name: "HiveServer",
 	products: [
-		.library(name: "HiveServer", targets: ["App"]),
+		.library(name: "HiveServer", targets: ["App"])
 	],
 	dependencies: [
 		// 💧 A server-side Swift web framework.
@@ -19,4 +19,3 @@ let package = Package(
 		.testTarget(name: "AppTests", dependencies: ["App"])
 	]
 )
-
