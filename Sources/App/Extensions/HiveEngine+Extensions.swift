@@ -16,6 +16,4 @@ extension GameState {
 	}
 }
 
-extension GameState: Content { }
-
 extension Movement: Content { }
