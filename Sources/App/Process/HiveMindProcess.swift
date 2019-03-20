@@ -13,6 +13,7 @@ enum HiveMindError: Error {
 	case notInitialized
 	case invalidOutput
 	case invalidMovement
+	case stringToDataConversion
 	case unknown
 }
 
@@ -30,11 +31,21 @@ class HiveMindProcess {
 
 	private let process = Process()
 
+	private let processInput = Pipe()
+	private let processOutput = Pipe()
+
 	init(isFirst: Bool) throws {
 		process.executableURL = executable
+		process.standardInput = processInput
+		process.standardOutput = processOutput
 		try process.run()
 
 		process.standardInput = "--new \(isFirst)\n"
+	}
+
+	deinit {
+		processInput.fileHandleForWriting.closeFile()
+		processOutput.fileHandleForReading.closeFile()
 	}
 
 	/// Ask for a `Movement` from the HiveMind.
@@ -42,10 +53,17 @@ class HiveMindProcess {
 	/// - Parameters:
 	///   - req: the server request made
 	func play(req: Request) -> Future<Movement> {
-		process.standardInput = "--play\n"
 		let movementPromise = req.eventLoop.newPromise(of: Movement.self)
 
-		// TODO: 12 seconds should be a configuration for the HiveMind, rather than a constant in each project
+		// Write the command to the process
+		guard let writeData = "--play\n".data(using: .utf8) else {
+			movementPromise.fail(error: HiveMindError.stringToDataConversion)
+			return movementPromise.futureResult
+		}
+
+		processInput.fileHandleForWriting.write(writeData)
+
+		// FIXME: 12 seconds should be a configuration for the HiveMind, rather than a constant in each project
 		DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
 			guard let self = self else {
 				print("`self` was nil after waiting for move")
@@ -53,20 +71,15 @@ class HiveMindProcess {
 				return
 			}
 
-			guard let rawOutput = self.process.standardOutput as? String else {
-				print("STDOUT `\(String(describing: self.process.standardOutput))` was not a valid String")
-				movementPromise.fail(error: HiveMindError.invalidOutput)
-				return
-			}
+			let readData = self.processOutput.fileHandleForReading.readDataToEndOfFile()
 
 			let decoder = JSONDecoder()
-			guard let data = rawOutput.data(using: .utf8), let move = try? decoder.decode(Movement.self, from: data) else {
-				print("Could not decode Movement from `\(rawOutput)`")
-				movementPromise.fail(error: HiveMindError.invalidMovement)
-				return
+			do {
+				let move = try decoder.decode(Movement.self, from: readData)
+				movementPromise.succeed(result: move)
+			} catch {
+				movementPromise.fail(error: error)
 			}
-
-			movementPromise.succeed(result: move)
 		}
 
 		return movementPromise.futureResult
@@ -75,15 +88,21 @@ class HiveMindProcess {
 	/// Forward a `Movement` to the HiveMind.
 	///
 	/// - Parameters:
-	///   - move: the movement to apply, which should be valid in the HiveMind's current state. If the movement is not valid,
-	///           the HiveMind process will fail silently.
+	///   - move: the movement to apply, which should be valid in the HiveMind's current state.
+	///           If the movement is not valid, the HiveMind process will fail silently.
 	func apply(move: Movement) {
 		let encoder = JSONEncoder()
 		guard let data = try? encoder.encode(move), let moveString = String(data: data, encoding: .utf8) else {
-			print("Failed to pass move `\(move)` to HiveMind")
+			print("Failed to convert \(move) to JSON")
 			return
 		}
 
-		process.standardInput = "--move \"\(moveString)\"\n"
+		let writeableValue = "--move \(moveString)\n"
+		guard let writeData = writeableValue.data(using: .utf8) else {
+			print("Failed to convert \(writeableValue) to Data")
+			return
+		}
+
+		processInput.fileHandleForWriting.write(writeData)
 	}
 }
