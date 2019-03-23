@@ -12,6 +12,7 @@ public func routes(_ router: Router) throws {
 	let hiveMindController = HiveMindController()
 	router.post("new", use: hiveMindController.new)
 	router.post("play", use: hiveMindController.play)
+	router.post("close", use: hiveMindController.close)
 }
 
 struct Initialization: Content {

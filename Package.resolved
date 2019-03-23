@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/vapor/console.git",
         "state": {
           "branch": null,
-          "revision": "d6cf07af59ae63cd95c4b5f98cf1f25627750fd1",
-          "version": "3.1.0"
+          "revision": "74cfbea629d4aac34a97cead2447a6870af1950b",
+          "version": "3.1.1"
         }
       },
       {
@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/vapor/core.git",
         "state": {
           "branch": null,
-          "revision": "1794ff138bd669175a2528d27695028d7cb30471",
-          "version": "3.5.0"
+          "revision": "7fe113f5e857c690b25960ccd6d9430cd34d038d",
+          "version": "3.7.1"
         }
       },
       {
@@ -42,7 +42,7 @@
         "repositoryURL": "https://github.com/josephroquedev/hive-engine.git",
         "state": {
           "branch": "master",
-          "revision": "a263fa0850f184f4e2b5028694b248784ca38501",
+          "revision": "f7ed5694ab2eeb441837b4827528b31a31c28715",
           "version": null
         }
       },
@@ -51,8 +51,8 @@
         "repositoryURL": "https://github.com/vapor/http.git",
         "state": {
           "branch": null,
-          "revision": "b57005e0de30ba36372ac41bfce1ac12b2bc3272",
-          "version": "3.1.8"
+          "revision": "24282b07c5b6fab13b7f2248eec45bc4e4e46eff",
+          "version": "3.1.10"
         }
       },
       {
@@ -69,8 +69,8 @@
         "repositoryURL": "https://github.com/vapor/routing.git",
         "state": {
           "branch": null,
-          "revision": "3219e328491b0853b8554c5a694add344d2c6cfb",
-          "version": "3.0.1"
+          "revision": "626190ddd2bd9f967743b60ba6adaf90bbd2651c",
+          "version": "3.0.2"
         }
       },
       {
@@ -87,8 +87,8 @@
         "repositoryURL": "https://github.com/apple/swift-nio.git",
         "state": {
           "branch": null,
-          "revision": "98434c1f1d687ff5a24d2cabfbd19b5c7d2d7a2f",
-          "version": "1.13.0"
+          "revision": "29a9f2aca71c8afb07e291336f1789337ce235dd",
+          "version": "1.13.2"
         }
       },
       {
@@ -150,8 +150,8 @@
         "repositoryURL": "https://github.com/vapor/vapor.git",
         "state": {
           "branch": null,
-          "revision": "6c7284681c3432fee29c268babf954be6816cbfb",
-          "version": "3.2.2"
+          "revision": "c86ada59b31c69f08a6abd4f776537cba48d5df6",
+          "version": "3.3.0"
         }
       },
       {

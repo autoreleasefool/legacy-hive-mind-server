@@ -38,4 +38,14 @@ final class HiveMindController {
 				}
 			})
 	}
+
+	/// Close the current HiveMindProcess
+	func close(_ req: Request) throws -> Future<HTTPStatus> {
+		let result = req.eventLoop.newPromise(of: HTTPStatus.self)
+
+		self.hiveMindProcess = nil
+		result.succeed(result: .ok)
+
+		return result.futureResult
+	}
 }

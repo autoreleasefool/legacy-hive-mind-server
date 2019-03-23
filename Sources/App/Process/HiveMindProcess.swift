@@ -40,12 +40,17 @@ class HiveMindProcess {
 		process.standardOutput = processOutput
 		try process.run()
 
-		process.standardInput = "--new \(isFirst)\n"
+		guard let writeData = "--new \(isFirst)\n".data(using: .utf8) else {
+			throw HiveMindError.stringToDataConversion
+		}
+
+		processInput.fileHandleForWriting.write(writeData)
 	}
 
 	deinit {
 		processInput.fileHandleForWriting.closeFile()
 		processOutput.fileHandleForReading.closeFile()
+		process.terminate()
 	}
 
 	/// Ask for a `Movement` from the HiveMind.
