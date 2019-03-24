@@ -15,7 +15,7 @@ Backend access to the HiveMind.
     * `swift build -Xswiftc "-target" -Xswiftc "x86_64-apple-macosx10.13"` to build without Xcode
 3. Start the server
     * Start the `Run` scheme with Xcode
-    * Or, `.build/x86_64-apple-macosx10.10/debug/Run` to run without Xcode
+    * Or, `.build/x86_64-apple-macosx10.13/debug/Run` to run without Xcode
     * You may need to update `Sources/App/HiveMind/HiveMindProcess` to point to your clone of [HiveMind](https://github.com/josephroquedev/hivemind)
         * Currently, the app assumes the two repositories have been cloned within the same parent directory
 4. That's it! You've got a server running.
@@ -23,6 +23,7 @@ Backend access to the HiveMind.
 ### Requirements
 
 * Swift 4.1+
+* macOS 10.13+
 * [Vapor](https://vapor.codes)
 
 ## Contributing
