@@ -82,13 +82,16 @@ class HiveMindProcess {
 				return
 			}
 
-			let readData = self.processOutput.fileHandleForReading.readDataToEndOfFile()
+			let readData = self.processOutput.fileHandleForReading.availableData
 
 			let decoder = JSONDecoder()
 			do {
 				let move = try decoder.decode(Movement.self, from: readData)
 				movementPromise.succeed(result: move)
 			} catch {
+				if let stringData = String(data: readData, encoding: .utf8) {
+					print("Failed data: `\(stringData)`")
+				}
 				movementPromise.fail(error: error)
 			}
 		}
