@@ -14,6 +14,7 @@ enum HiveMindError: Error {
 	case invalidOutput
 	case invalidMovement
 	case stringToDataConversion
+	case JSONExtraction
 	case unknown
 }
 
@@ -49,13 +50,7 @@ class HiveMindProcess {
 	}
 
 	deinit {
-		processInput.fileHandleForWriting.closeFile()
-		processOutput.fileHandleForReading.closeFile()
-
-		if process.isRunning {
-			process.terminate()
-			print("(PID \(process.processIdentifier)): Terminated HiveMindProcess")
-		}
+		close()
 	}
 
 	/// Ask for a `Movement` from the HiveMind.
@@ -84,12 +79,20 @@ class HiveMindProcess {
 
 			let readData = self.processOutput.fileHandleForReading.availableData
 
+			guard let cleanData = self.extractJSON(from: readData) else {
+				if let stringData = String(data: readData, encoding: .utf8) {
+					print("Failed data: `\(stringData)`")
+				}
+				movementPromise.fail(error: HiveMindError.JSONExtraction)
+				return
+			}
+
 			let decoder = JSONDecoder()
 			do {
-				let move = try decoder.decode(Movement.self, from: readData)
+				let move = try decoder.decode(Movement.self, from: cleanData)
 				movementPromise.succeed(result: move)
 			} catch {
-				if let stringData = String(data: readData, encoding: .utf8) {
+				if let stringData = String(data: cleanData, encoding: .utf8) {
 					print("Failed data: `\(stringData)`")
 				}
 				movementPromise.fail(error: error)
@@ -121,10 +124,35 @@ class HiveMindProcess {
 		processInput.fileHandleForWriting.write(writeData)
 	}
 
+	/// Close the current HiveMind process.
 	func close() {
 		if process.isRunning {
 			process.terminate()
 			print("(PID \(process.processIdentifier)): Terminated HiveMindProcess")
 		}
+	}
+
+	/// Given `Data` representing a `String`, extracts the first JSON object to appear in the `String`
+	/// and returns it as `Data`
+	///
+	/// - Parameters:
+	///   - data: the data to parse
+	private func extractJSON(from data: Data) -> Data? {
+		guard let dataAsString = String(data: data, encoding: .utf8),
+			let startIndex = dataAsString.firstIndex(of: "{") else { return nil }
+		var endIndex = dataAsString.index(after: startIndex)
+		var depth = 1
+		while depth > 0 && endIndex != dataAsString.endIndex {
+			switch dataAsString[endIndex] {
+			case "{": depth += 1
+			case "}": depth -= 1
+			default:
+				// Does nothing
+				break
+			}
+			endIndex = dataAsString.index(after: endIndex)
+		}
+
+		return dataAsString[startIndex..<endIndex].data(using: .utf8)
 	}
 }
