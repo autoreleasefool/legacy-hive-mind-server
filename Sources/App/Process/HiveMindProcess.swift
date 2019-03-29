@@ -20,6 +20,8 @@ enum HiveMindError: Error {
 
 class HiveMindProcess {
 
+	private static let explorationTime: TimeInterval = 3
+
 	/// Location of the HiveMind executable
 	private var executable: URL {
 		return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -41,12 +43,15 @@ class HiveMindProcess {
 		process.standardOutput = processOutput
 		try process.run()
 
-		guard let writeData = "new \(isFirst)\n".data(using: .utf8) else {
+		guard let writeData = "new \(isFirst) \(HiveMindProcess.explorationTime)\n".data(using: .utf8) else {
 			throw HiveMindError.stringToDataConversion
 		}
 
-		processInput.fileHandleForWriting.write(writeData)
-		print("(PID \(process.processIdentifier)): Initialized HiveMindProcess")
+		// Allow time for the HiveMind to initialize its process then write data
+		DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+			self.processInput.fileHandleForWriting.write(writeData)
+			print("(PID \(self.process.processIdentifier)): Initialized HiveMindProcess")
+		}
 	}
 
 	deinit {
@@ -67,10 +72,12 @@ class HiveMindProcess {
 			return movementPromise.futureResult
 		}
 
+		// Clear output from process before sending input
+		_ = processOutput.fileHandleForReading.availableData
 		processInput.fileHandleForWriting.write(writeData)
 
-		// FIXME: 12 seconds should be a configuration for the HiveMind, rather than a constant in each project
-		DispatchQueue.global().asyncAfter(deadline: .now() + 12) { [weak self] in
+		let explorationTime = HiveMindProcess.explorationTime + 2
+		DispatchQueue.global().asyncAfter(deadline: .now() + explorationTime) { [weak self] in
 			guard let self = self else {
 				print("`self` was nil after waiting for move")
 				movementPromise.fail(error: HiveMindError.unknown)
