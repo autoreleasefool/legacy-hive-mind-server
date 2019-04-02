@@ -20,13 +20,15 @@ enum HiveMindError: Error {
 
 class HiveMindProcess {
 
-	private static let explorationTime: TimeInterval = 3
+	private static let explorationTime: TimeInterval = 10
 
 	/// Location of the HiveMind executable
+	/// FIXME: Replace with something more generic
 	private var executable: URL {
-		return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-			.appendingPathComponent("..")
-			.appendingPathComponent("hive-engine")
+		return FileManager.default.homeDirectoryForCurrentUser
+			.appendingPathComponent("Documents")
+			.appendingPathComponent("Workspace")
+			.appendingPathComponent("hivemind")
 			.appendingPathComponent(".build")
 			.appendingPathComponent("release")
 			.appendingPathComponent("HiveMind")
