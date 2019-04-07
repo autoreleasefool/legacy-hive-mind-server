@@ -32,6 +32,7 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		CA505248225A7128001CA102 /* HiveMindError.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA505247225A7128001CA102 /* HiveMindError.swift */; };
 		OBJ_1006 /* BitsError.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_529 /* BitsError.swift */; };
 		OBJ_1007 /* Byte+Alphabet.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_530 /* Byte+Alphabet.swift */; };
 		OBJ_1008 /* Byte+Control.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_531 /* Byte+Control.swift */; };
@@ -4111,6 +4112,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CA505247225A7128001CA102 /* HiveMindError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiveMindError.swift; sourceTree = "<group>"; };
 		"Console::Command::Product" /* Command.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Command.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		"Console::Console::Product" /* Console.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Console.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		"Console::Logging::Product" /* Logging.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Logging.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -5437,6 +5439,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CA505246225A70FA001CA102 /* HiveMind */ = {
+			isa = PBXGroup;
+			children = (
+				OBJ_10 /* HiveMindController.swift */,
+				OBJ_14 /* HiveMindProcess.swift */,
+				CA505247225A7128001CA102 /* HiveMindError.swift */,
+			);
+			path = HiveMind;
+			sourceTree = "<group>";
+		};
 		OBJ_108 /* Server */ = {
 			isa = PBXGroup;
 			children = (
@@ -5491,14 +5503,6 @@
 				OBJ_131 /* Thread.swift */,
 			);
 			path = Utilities;
-			sourceTree = "<group>";
-		};
-		OBJ_13 /* Process */ = {
-			isa = PBXGroup;
-			children = (
-				OBJ_14 /* HiveMindProcess.swift */,
-			);
-			path = Process;
 			sourceTree = "<group>";
 		};
 		OBJ_132 /* View */ = {
@@ -6678,7 +6682,7 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		OBJ_5 /*  */ = {
+		OBJ_5 = {
 			isa = PBXGroup;
 			children = (
 				OBJ_6 /* Package.swift */,
@@ -6693,7 +6697,6 @@
 				OBJ_749 /* README.md */,
 				OBJ_750 /* web.Dockerfile */,
 			);
-			name = "";
 			sourceTree = "<group>";
 		};
 		OBJ_505 /* Utilities */ = {
@@ -7304,9 +7307,8 @@
 		OBJ_8 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				OBJ_9 /* Controllers */,
+				CA505246225A70FA001CA102 /* HiveMind */,
 				OBJ_11 /* Extensions */,
-				OBJ_13 /* Process */,
 				OBJ_15 /* app.swift */,
 				OBJ_16 /* boot.swift */,
 				OBJ_17 /* configure.swift */,
@@ -7338,14 +7340,6 @@
 				OBJ_96 /* ResponseCodable.swift */,
 			);
 			path = Response;
-			sourceTree = "<group>";
-		};
-		OBJ_9 /* Controllers */ = {
-			isa = PBXGroup;
-			children = (
-				OBJ_10 /* HiveMindController.swift */,
-			);
-			path = Controllers;
 			sourceTree = "<group>";
 		};
 		OBJ_97 /* Routing */ = {
@@ -8796,7 +8790,7 @@
 				English,
 				en,
 			);
-			mainGroup = OBJ_5 /*  */;
+			mainGroup = OBJ_5;
 			productRefGroup = OBJ_702 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -9766,6 +9760,7 @@
 				OBJ_757 /* HiveEngine+Extensions.swift in Sources */,
 				OBJ_758 /* HiveMindProcess.swift in Sources */,
 				OBJ_759 /* app.swift in Sources */,
+				CA505248225A7128001CA102 /* HiveMindError.swift in Sources */,
 				OBJ_760 /* boot.swift in Sources */,
 				OBJ_761 /* configure.swift in Sources */,
 				OBJ_762 /* routes.swift in Sources */,
