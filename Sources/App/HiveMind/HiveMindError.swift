@@ -13,6 +13,7 @@ enum HiveMindError: Error {
 	case stringToDataConversion(String)
 	case dataToStringConversion
 	case JSONExtraction(String)
+	case noMovement
 }
 
 /// Additional error details
@@ -23,6 +24,7 @@ extension HiveMindError: LocalizedError {
 		case .stringToDataConversion(let string): return "Failed to convert `\(string)` to Data"
 		case .JSONExtraction(let string): return "Could not extract JSON from string `\(string)`"
 		case .dataToStringConversion: return "Failed to convert Data to String"
+		case .noMovement: return "HiveMind returned no movement."
 		}
 	}
 }

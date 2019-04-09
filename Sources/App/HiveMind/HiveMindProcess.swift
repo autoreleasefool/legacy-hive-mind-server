@@ -42,7 +42,6 @@ class HiveMindProcess {
 				let newProcessCommand = "new \(isFirst) \(HiveMindProcess.explorationTime)\n"
 				try self.writeCommand(newProcessCommand)
 				self.processPrint("Initialized HiveMindProcess")
-				print("(PID \(self.process.processIdentifier)): Initialized HiveMindProcess")
 			} catch {
 				self.processPrint("Failed to initialize HiveMindProcess: \(error.localizedDescription)")
 			}
@@ -58,7 +57,7 @@ class HiveMindProcess {
 	/// - Parameters:
 	///   - req: the server request made
 	func play(req: Request) -> Future<Movement> {
-		processPrint("Playing move")
+		processPrint("Asking HiveMind for movement...")
 		let movementPromise = req.eventLoop.newPromise(of: Movement.self)
 
 		// Write the command to the process
@@ -72,17 +71,32 @@ class HiveMindProcess {
 		}
 
 		let explorationTime = HiveMindProcess.explorationTime + 2
+
+		processPrint("Waiting \(explorationTime) seconds for response")
 		DispatchQueue.global().asyncAfter(deadline: .now() + explorationTime) { [weak self] in
 			guard let self = self else { return }
+			self.processPrint("Parsing HiveMind movement...")
 
 			let hiveMindOutput = self.processOutput.fileHandleForReading.availableData
+
+			#warning("Remove the following debug output")
+			if let string = String(data: hiveMindOutput, encoding: .utf8) {
+				self.processPrint("----- HiveMind Output -----")
+				print(string)
+				self.processPrint("----- End HiveMind -----")
+			}
+
 			let (movement, error) = self.movement(from: hiveMindOutput)
-			guard error == nil else {
-				movementPromise.fail(error: error!)
+			if let error = error {
+				movementPromise.fail(error: error)
 				return
 			}
 
-			movementPromise.succeed(result: movement!)
+			if let movement = movement {
+				movementPromise.succeed(result: movement)
+			} else {
+				movementPromise.fail(error: HiveMindError.noMovement)
+			}
 		}
 
 		return movementPromise.futureResult
@@ -113,7 +127,7 @@ class HiveMindProcess {
 	func close() {
 		if process.isRunning {
 			process.terminate()
-			print("(PID \(process.processIdentifier)): Terminated HiveMindProcess")
+			processPrint("Terminated HiveMindProcess")
 		}
 	}
 
@@ -140,21 +154,21 @@ class HiveMindProcess {
 	/// Given a `String`, extracts the first JSON object to appear in the `String`
 	/// and returns it as `Data`
 	private func extractJSONData(from string: String) -> Data? {
-		guard let startIndex = string.firstIndex(of: "{") else { return nil }
-		var endIndex = string.index(after: startIndex)
+		guard let endIndex = string.lastIndex(of: "}") else { return nil }
+		var startIndex = string.index(before: endIndex)
 		var depth = 1
-		while depth > 0 && endIndex != string.endIndex {
-			switch string[endIndex] {
-			case "{": depth += 1
-			case "}": depth -= 1
+		while depth > 0 && startIndex != string.startIndex {
+			switch string[startIndex] {
+			case "}": depth += 1
+			case "{": depth -= 1
 			default:
 				// Does nothing
 				break
 			}
-			endIndex = string.index(after: endIndex)
+			startIndex = string.index(before: startIndex)
 		}
 
-		return string[startIndex..<endIndex].data(using: .utf8)
+		return string[startIndex...endIndex].data(using: .utf8)
 	}
 
 	/// Print a String with the current process's identifier.
