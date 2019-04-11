@@ -22,7 +22,7 @@ Backend access to the HiveMind.
 
 ### Requirements
 
-* Swift 4.1+
+* Swift 5.0+
 * macOS 10.13+
 * [Vapor](https://vapor.codes)
 
