@@ -10,10 +10,8 @@ import Foundation
 /// Common errors from interacting with the HiveMind process
 enum HiveMindError: Error {
 	case notInitialized
-	case stringToDataConversion(String)
-	case dataToStringConversion
-	case JSONExtraction(String)
 	case noMovement
+	case timeOut
 }
 
 /// Additional error details
@@ -21,10 +19,8 @@ extension HiveMindError: LocalizedError {
 	var errorDescription: String? {
 		switch self {
 		case .notInitialized: return "An instance of the HiveMind has not been initialized"
-		case .stringToDataConversion(let string): return "Failed to convert `\(string)` to Data"
-		case .JSONExtraction(let string): return "Could not extract JSON from string `\(string)`"
-		case .dataToStringConversion: return "Failed to convert Data to String"
 		case .noMovement: return "HiveMind returned no movement."
+		case .timeOut: return "HiveMind timed out waiting for a response."
 		}
 	}
 }

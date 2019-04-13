@@ -7,45 +7,67 @@
 
 import Foundation
 import HiveEngine
-import Vapor
+import Starscream
+import Core
 
-class HiveMindProcess {
+enum SocketMessage: CustomStringConvertible {
+	case new(Bool, Double)
+	case play
+	case move(Movement)
 
+	public var description: String {
+		switch self {
+		case .new(let isFirst, let explorationTime):
+			return "new \(isFirst) \(explorationTime)"
+		case .play:
+			return "play"
+		case .move(let movement):
+			return "move \(movement.json())"
+		}
+	}
+}
+
+enum SocketResponse {
+	case success
+	case movement(Movement)
+	case failure
+	case invalidCommand
+
+	static func from(string: String) -> SocketResponse {
+		switch string {
+		case "SUCCESS": return .success
+		case "FAILED": return .failure
+		default:
+			if let movement = Movement.decode(string) {
+				return .movement(movement)
+			}
+			return .invalidCommand
+		}
+	}
+}
+
+class HiveMind {
+
+	/// Default time to allow the HiveMind to explore
 	private static let explorationTime: TimeInterval = 10
 
-	/// Location of the HiveMind executable
-	#warning("Replace the HiveMind executable with something more generic")
-	private var executable: URL {
-		return FileManager.default.homeDirectoryForCurrentUser
-			.appendingPathComponent("Documents")
-			.appendingPathComponent("Workspace")
-			.appendingPathComponent("hivemind")
-			.appendingPathComponent(".build")
-			.appendingPathComponent("debug")
-			.appendingPathComponent("HiveMind")
-	}
+	/// Socket connection to the HiveMind
+	private let socket: Starscream.WebSocket
 
-	private let process = Process()
+	/// If true, the HiveMind will play first in the game, and if false, it will play second.
+	private let isFirst: Bool
 
-	private let processInput = Pipe()
-	private let processOutput = Pipe()
+	/// Identifier for the current promise to be fulfilled
+	private var movementPromiseID: Int = 0
+	/// The most recent promise waiting for a Movement.
+	private var nextMovementPromise: EventLoopPromise<Movement>? = nil
 
-	init(isFirst: Bool) throws {
-		process.executableURL = executable
-		process.standardInput = processInput
-		process.standardOutput = processOutput
-		try process.run()
-
-		// Allow time for the HiveMind to initialize its process then write data
-		DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
-			do {
-				let newProcessCommand = "new \(isFirst) \(HiveMindProcess.explorationTime)\n"
-				try self.writeCommand(newProcessCommand)
-				self.processPrint("Initialized HiveMindProcess")
-			} catch {
-				self.processPrint("Failed to initialize HiveMindProcess: \(error.localizedDescription)")
-			}
-		}
+	init?(isFirst: Bool) {
+		guard let url = URL(string: "ws://localhost:8081") else { return nil }
+		self.isFirst = isFirst
+		socket = WebSocket(url: url)
+		socket.delegate = self
+		socket.connect()
 	}
 
 	deinit {
@@ -55,48 +77,28 @@ class HiveMindProcess {
 	/// Ask for a `Movement` from the HiveMind.
 	///
 	/// - Parameters:
-	///   - req: the server request made
-	func play(req: Request) -> Future<Movement> {
-		processPrint("Asking HiveMind for movement...")
-		let movementPromise = req.eventLoop.newPromise(of: Movement.self)
+	///   - eventLoop: the EventLoop to process the request with
+	func play(on eventLoop: EventLoop) -> Future<Movement> {
+		print("Asking HiveMind for movement...")
+		let movementPromise = eventLoop.newPromise(of: Movement.self)
 
-		// Write the command to the process
-		do {
-			// Clear output from process before sending input
-			_ = processOutput.fileHandleForReading.availableData
-			try writeCommand("play\n")
-		} catch {
-			movementPromise.fail(error: error)
-			return movementPromise.futureResult
+		// Update the current promise waiting for a response
+		if let previousMovementPromise = nextMovementPromise {
+			previousMovementPromise.fail(error: HiveMindError.noMovement)
 		}
 
-		let explorationTime = HiveMindProcess.explorationTime + 2
+		let nextID = movementPromiseID + 1
+		movementPromiseID = nextID
+		nextMovementPromise = movementPromise
 
-		processPrint("Waiting \(explorationTime) seconds for response")
+		writeToSocket(message: .play)
+
+		let explorationTime = HiveMind.explorationTime + 2
 		DispatchQueue.global().asyncAfter(deadline: .now() + explorationTime) { [weak self] in
 			guard let self = self else { return }
-			self.processPrint("Parsing HiveMind movement...")
-
-			let hiveMindOutput = self.processOutput.fileHandleForReading.availableData
-
-			#warning("Remove the following debug output")
-			if let string = String(data: hiveMindOutput, encoding: .utf8) {
-				self.processPrint("----- HiveMind Output -----")
-				print(string)
-				self.processPrint("----- End HiveMind -----")
-			}
-
-			let (movement, error) = self.movement(from: hiveMindOutput)
-			if let error = error {
-				movementPromise.fail(error: error)
-				return
-			}
-
-			if let movement = movement {
-				movementPromise.succeed(result: movement)
-			} else {
-				movementPromise.fail(error: HiveMindError.noMovement)
-			}
+			guard let currentMovementPromise = self.nextMovementPromise, nextID == self.movementPromiseID else { return }
+			currentMovementPromise.fail(error: HiveMindError.timeOut)
+			self.nextMovementPromise = nil
 		}
 
 		return movementPromise.futureResult
@@ -106,86 +108,68 @@ class HiveMindProcess {
 	///
 	/// - Parameters:
 	///   - move: the movement to apply, which should be valid in the HiveMind's current state.
-	///           If the movement is not valid, the HiveMind process will fail silently.
+	///           If the movement is not valid, the HiveMind will fail silently.
 	func apply(move: Movement) {
-		processPrint("Applying movement `\(move)")
-
-		let encoder = JSONEncoder()
-		guard let data = try? encoder.encode(move), let moveString = String(data: data, encoding: .utf8) else {
-			print("Failed to convert \(move) to JSON")
-			return
-		}
-
-		do {
-			try writeCommand("move \(moveString)\n")
-		} catch {
-			print(error)
-		}
+		print("Applying movement `\(move)")
+		writeToSocket(message: .move(move))
 	}
 
 	/// Close the current HiveMind process.
 	func close() {
-		if process.isRunning {
-			process.terminate()
-			processPrint("Terminated HiveMindProcess")
+		if socket.isConnected {
+			socket.disconnect()
+			print("Began HiveMind socket termination")
 		}
 	}
 
-	/// Get a `Movement` from JSON encoded data. Returns the movement, or nil and an error
-	/// if there were any errors.
-	private func movement(from data: Data) -> (Movement?, Error?) {
-		guard let dataAsString = String(data: data, encoding: .utf8) else {
-			return (nil, HiveMindError.dataToStringConversion)
-		}
-
-		guard let cleanData = extractJSONData(from: dataAsString) else {
-			return (nil, HiveMindError.JSONExtraction(dataAsString))
-		}
-
-		let decoder = JSONDecoder()
-		do {
-			let move = try decoder.decode(Movement.self, from: cleanData)
-			return (move, nil)
-		} catch {
-			return (nil, error)
-		}
+	/// Write a message to the Socket for the HiveMind to received.
+	private func writeToSocket(message: SocketMessage) {
+		socket.write(string: message.description)
 	}
 
-	/// Given a `String`, extracts the first JSON object to appear in the `String`
-	/// and returns it as `Data`
-	private func extractJSONData(from string: String) -> Data? {
-		guard let endIndex = string.lastIndex(of: "}") else { return nil }
-		var startIndex = string.index(before: endIndex)
-		var depth = 1
-		while depth > 0 && startIndex != string.startIndex {
-			switch string[startIndex] {
-			case "}": depth += 1
-			case "{": depth -= 1
-			default:
-				// Does nothing
-				break
+	/// Handle a `SocketResponse` from the Socket and update the server appropriately.
+	private func handle(response: SocketResponse) {
+		switch response {
+		case .failure, .invalidCommand:
+			if let movementPromise = nextMovementPromise {
+				movementPromise.fail(error: HiveMindError.noMovement)
+				nextMovementPromise = nil
 			}
-
-			if depth == 0 {
-				break
+		case .movement(let movement):
+			if let movementPromise = nextMovementPromise {
+				movementPromise.succeed(result: movement)
+				nextMovementPromise = nil
 			}
-			startIndex = string.index(before: startIndex)
+		case .success:
+			// Does nothing
+			break
 		}
+	}
+}
 
-		return string[startIndex...endIndex].data(using: .utf8)
+extension HiveMind: WebSocketDelegate {
+	public func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
+		print("WebSocket received some Data: \(data.count) elements.")
+		if let input = String(data: data, encoding: .utf8) {
+			let response = SocketResponse.from(string: input)
+			handle(response: response)
+		} else {
+			print("Failed to decode Data as String.")
+		}
 	}
 
-	/// Print a String with the current process's identifier.
-	private func processPrint(_ string: String) {
-		print("(PID \(self.process.processIdentifier)):", string)
+	public func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
+		print("WebSocket recieved some Text: \(text.count) characters.")
+		let response = SocketResponse.from(string: text)
+		handle(response: response)
 	}
 
-	/// Attempt to write a command to the current Process and throw any errors.
-	private func writeCommand(_ command: String) throws {
-		guard let writeData = command.data(using: .utf8) else {
-			throw HiveMindError.stringToDataConversion(command)
-		}
+	func websocketDidConnect(socket: WebSocketClient) {
+		print("Connected to HiveMind socket.")
 
-		processInput.fileHandleForWriting.write(writeData)
+	}
+
+	func websocketDidDisconnect(socket: WebSocketClient, error: Error?) {
+		print("Disconnected from HiveMind socket.")
 	}
 }
