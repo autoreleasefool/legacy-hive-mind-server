@@ -898,7 +898,7 @@
 		OBJ_2516 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_701 /* Package.swift */; };
 		OBJ_756 /* HiveMindController.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_10 /* HiveMindController.swift */; };
 		OBJ_757 /* HiveEngine+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_12 /* HiveEngine+Extensions.swift */; };
-		OBJ_758 /* HiveMindProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_14 /* HiveMindProcess.swift */; };
+		OBJ_758 /* HiveMind.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_14 /* HiveMind.swift */; };
 		OBJ_759 /* app.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_15 /* app.swift */; };
 		OBJ_760 /* boot.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_16 /* boot.swift */; };
 		OBJ_761 /* configure.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_17 /* configure.swift */; };
@@ -4169,7 +4169,7 @@
 		OBJ_137 /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		OBJ_138 /* WebSocketResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketResponder.swift; sourceTree = "<group>"; };
 		OBJ_139 /* WebSocketServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketServer.swift; sourceTree = "<group>"; };
-		OBJ_14 /* HiveMindProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiveMindProcess.swift; sourceTree = "<group>"; };
+		OBJ_14 /* HiveMind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiveMind.swift; sourceTree = "<group>"; };
 		OBJ_140 /* Package.swift */ = {isa = PBXFileReference; explicitFileType = sourcecode.swift; name = Package.swift; path = "/Users/josephroque/Documents/Workspace/hive-server/.build/checkouts/vapor/Package.swift"; sourceTree = "<group>"; };
 		OBJ_143 /* Exports.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exports.swift; sourceTree = "<group>"; };
 		OBJ_144 /* WebSocket+Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WebSocket+Client.swift"; sourceTree = "<group>"; };
@@ -5442,8 +5442,8 @@
 		CA505246225A70FA001CA102 /* HiveMind */ = {
 			isa = PBXGroup;
 			children = (
+				OBJ_14 /* HiveMind.swift */,
 				OBJ_10 /* HiveMindController.swift */,
-				OBJ_14 /* HiveMindProcess.swift */,
 				CA505247225A7128001CA102 /* HiveMindError.swift */,
 			);
 			path = HiveMind;
@@ -9758,7 +9758,7 @@
 			files = (
 				OBJ_756 /* HiveMindController.swift in Sources */,
 				OBJ_757 /* HiveEngine+Extensions.swift in Sources */,
-				OBJ_758 /* HiveMindProcess.swift in Sources */,
+				OBJ_758 /* HiveMind.swift in Sources */,
 				OBJ_759 /* app.swift in Sources */,
 				CA505248225A7128001CA102 /* HiveMindError.swift in Sources */,
 				OBJ_760 /* boot.swift in Sources */,

@@ -1,5 +1,5 @@
 //
-//  HiveMindProcess.swift
+//  HiveMind .swift
 //  App
 //
 //  Created by Joseph Roque on 2019-03-17.
@@ -14,7 +14,7 @@ class HiveMindProcess {
 	private static let explorationTime: TimeInterval = 10
 
 	/// Location of the HiveMind executable
-	/// FIXME: Replace with something more generic
+	#warning("Replace the HiveMind executable with something more generic")
 	private var executable: URL {
 		return FileManager.default.homeDirectoryForCurrentUser
 			.appendingPathComponent("Documents")
@@ -163,6 +163,10 @@ class HiveMindProcess {
 			case "{": depth -= 1
 			default:
 				// Does nothing
+				break
+			}
+
+			if depth == 0 {
 				break
 			}
 			startIndex = string.index(before: startIndex)

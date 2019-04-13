@@ -16,9 +16,9 @@ Backend access to the HiveMind.
 3. Start the server
     * Start the `Run` scheme with Xcode
     * Or, `.build/x86_64-apple-macosx10.13/debug/Run` to run without Xcode
-    * You may need to update `Sources/App/HiveMind/HiveMindProcess` to point to your clone of [HiveMind](https://github.com/josephroquedev/hivemind)
-        * Currently, the app assumes the two repositories have been cloned within the same parent directory
 4. That's it! You've got a server running.
+
+By default, the server will communicate with the HiveMind AI on port `8081`. This can be configured when starting your instance of the server and the [HiveMind](https://github.com/josephroquedev/hivemind), or you can add your own AI by following the `HiveMind` example in `Sources/App/HiveMind` 
 
 ### Requirements
 
