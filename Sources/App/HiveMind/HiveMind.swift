@@ -7,67 +7,47 @@
 
 import Foundation
 import HiveEngine
-import Starscream
-import Core
-
-enum SocketMessage: CustomStringConvertible {
-	case new(Bool, Double)
-	case play
-	case move(Movement)
-
-	public var description: String {
-		switch self {
-		case .new(let isFirst, let explorationTime):
-			return "new \(isFirst) \(explorationTime)"
-		case .play:
-			return "play"
-		case .move(let movement):
-			return "move \(movement.json())"
-		}
-	}
-}
-
-enum SocketResponse {
-	case success
-	case movement(Movement)
-	case failure
-	case invalidCommand
-
-	static func from(string: String) -> SocketResponse {
-		switch string {
-		case "SUCCESS": return .success
-		case "FAILED": return .failure
-		default:
-			if let movement = Movement.decode(string) {
-				return .movement(movement)
-			}
-			return .invalidCommand
-		}
-	}
-}
+import WebSocket
 
 class HiveMind {
-
-	/// Default time to allow the HiveMind to explore
-	private static let explorationTime: TimeInterval = 10
+	struct Configuration {
+		/// Indicates if the HiveMind will play first (true) or second (false) in the game
+		let isFirst: Bool
+		/// Amount of time the HiveMind will be allowed to explore before a move is requested
+		let explorationTime: TimeInterval = 10
+		/// Hostname for the connection to the HiveMind
+		let hostname: String = "localhost"
+		/// Port number for the connection to the HiveMind
+		let port: Int = 8081
+	}
 
 	/// Socket connection to the HiveMind
-	private let socket: Starscream.WebSocket
+	private let socket: WebSocket
 
-	/// If true, the HiveMind will play first in the game, and if false, it will play second.
-	private let isFirst: Bool
+	/// Worker that server events will be handled with.
+	private let group: EventLoopGroup
+
+	/// Configuration of the HiveMind connection
+	private let configuration: Configuration
 
 	/// Identifier for the current promise to be fulfilled
 	private var movementPromiseID: Int = 0
 	/// The most recent promise waiting for a Movement.
 	private var nextMovementPromise: EventLoopPromise<Movement>? = nil
 
-	init?(isFirst: Bool) {
-		guard let url = URL(string: "ws://localhost:8081") else { return nil }
-		self.isFirst = isFirst
-		socket = WebSocket(url: url)
-		socket.delegate = self
-		socket.connect()
+	init(configuration: Configuration = Configuration(isFirst: true)) throws {
+		self.group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+		self.configuration = configuration
+		socket = try HTTPClient.webSocket(
+			scheme: .ws,
+			hostname: configuration.hostname,
+			port: configuration.port,
+			on: group
+		).wait()
+
+		socket.onText { [weak self] ws, text in
+			self?.handle(response: SocketResponse.from(string: text))
+		}
 	}
 
 	deinit {
@@ -91,9 +71,9 @@ class HiveMind {
 		movementPromiseID = nextID
 		nextMovementPromise = movementPromise
 
-		writeToSocket(message: .play)
+		send(message: .play)
 
-		let explorationTime = HiveMind.explorationTime + 2
+		let explorationTime = configuration.explorationTime + 2
 		DispatchQueue.global().asyncAfter(deadline: .now() + explorationTime) { [weak self] in
 			guard let self = self else { return }
 			guard let currentMovementPromise = self.nextMovementPromise, nextID == self.movementPromiseID else { return }
@@ -107,24 +87,26 @@ class HiveMind {
 	/// Forward a `Movement` to the HiveMind.
 	///
 	/// - Parameters:
-	///   - move: the movement to apply, which should be valid in the HiveMind's current state.
-	///           If the movement is not valid, the HiveMind will fail silently.
-	func apply(move: Movement) {
-		print("Applying movement `\(move)")
-		writeToSocket(message: .move(move))
+	///   - movement: the movement to apply, which should be valid in the HiveMind's current state.
+	///               If the movement is not valid, the HiveMind will fail silently.
+	func apply(movement: Movement) {
+		print("Applying movement `\(movement)")
+		send(message: .movement(movement))
 	}
 
 	/// Close the current HiveMind process.
 	func close() {
-		if socket.isConnected {
-			socket.disconnect()
+		if socket.isClosed == false {
+			socket.close()
 			print("Began HiveMind socket termination")
 		}
+
+		group.shutdownGracefully { _ in }
 	}
 
 	/// Write a message to the Socket for the HiveMind to received.
-	private func writeToSocket(message: SocketMessage) {
-		socket.write(string: message.description)
+	private func send(message: SocketMessage) {
+		socket.send(message.description)
 	}
 
 	/// Handle a `SocketResponse` from the Socket and update the server appropriately.
@@ -147,29 +129,41 @@ class HiveMind {
 	}
 }
 
-extension HiveMind: WebSocketDelegate {
-	public func websocketDidReceiveData(socket: WebSocketClient, data: Data) {
-		print("WebSocket received some Data: \(data.count) elements.")
-		if let input = String(data: data, encoding: .utf8) {
-			let response = SocketResponse.from(string: input)
-			handle(response: response)
-		} else {
-			print("Failed to decode Data as String.")
+enum SocketMessage: CustomStringConvertible {
+	case new(Bool, Double)
+	case play
+	case movement(Movement)
+	case exit
+
+	public var description: String {
+		switch self {
+		case .new(let isFirst, let explorationTime):
+			return "new \(isFirst) \(explorationTime)"
+		case .play:
+			return "play"
+		case .movement(let movement):
+			return "move \(movement.json())"
+		case .exit:
+			return "exit"
 		}
 	}
+}
 
-	public func websocketDidReceiveMessage(socket: WebSocketClient, text: String) {
-		print("WebSocket recieved some Text: \(text.count) characters.")
-		let response = SocketResponse.from(string: text)
-		handle(response: response)
-	}
+enum SocketResponse {
+	case success
+	case movement(Movement)
+	case failure
+	case invalidCommand
 
-	func websocketDidConnect(socket: WebSocketClient) {
-		print("Connected to HiveMind socket.")
-
-	}
-
-	func websocketDidDisconnect(socket: WebSocketClient, error: Error?) {
-		print("Disconnected from HiveMind socket.")
+	static func from(string: String) -> SocketResponse {
+		switch string {
+		case "SUCCESS": return .success
+		case "FAILED": return .failure
+		default:
+			if let movement = Movement.decode(string) {
+				return .movement(movement)
+			}
+			return .invalidCommand
+		}
 	}
 }

@@ -16,7 +16,7 @@ final class HiveMindController {
 	/// Creates a new instance of the HiveMind and begins a game
 	func new(_ req: Request) throws -> Future<HTTPStatus> {
 		return try req.content.decode(Initialization.self).map(to: HTTPStatus.self) { [weak self] initialization in
-			self?.hiveMind = HiveMind(isFirst: !initialization.playerIsFirst)
+			self?.hiveMind = try HiveMind(configuration: HiveMind.Configuration(isFirst: !initialization.playerIsFirst))
 			return .ok
 		}
 	}
@@ -25,8 +25,8 @@ final class HiveMindController {
 	func play(_ req: Request) throws -> Future<Movement> {
 		guard let hiveMind = self.hiveMind else { throw HiveMindError.notInitialized }
 		return try req.content.decode(Movement.self)
-			.flatMap({ move in
-				hiveMind.apply(move: move)
+			.flatMap({ movement in
+				hiveMind.apply(movement: movement)
 				return hiveMind.play(on: req.eventLoop).map { response in
 					return response
 				}
