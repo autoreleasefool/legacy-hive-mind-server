@@ -30,10 +30,11 @@ class HiveMind {
 	/// Configuration of the HiveMind connection
 	private let configuration: Configuration
 
-	/// Identifier for the current promise to be fulfilled
-	private var movementPromiseID: Int = 0
-	/// The most recent promise waiting for a Movement.
-	private var nextMovementPromise: EventLoopPromise<Movement>? = nil
+	/// Callback for the next `Movement` returned from the HiveMind
+	private var onNextMovement: ((SocketResponse, Error?) -> Void)? = nil
+
+	/// Callback for the next response from the HiveMind after sending a `Movement`
+	private var onMovementResponse: ((SocketResponse) -> Void)? = nil
 
 	init(configuration: Configuration = Configuration(isFirst: true)) throws {
 		self.group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
@@ -53,7 +54,11 @@ class HiveMind {
 	}
 
 	/// Create an instance of `HiveMind` and return the result as a `Future` on the given `EventLoop`
-	static func start(initialization: Initialization, eventLoop: EventLoop) -> Future<HiveMind> {
+	///
+	/// - Parameters:
+	///   - initialization: AI Initialization parameters
+	///   - eventLoop: the EventLoop to process the request with
+	static func start(initialization: Initialization, on eventLoop: EventLoop) -> Future<HiveMind> {
 		let promise = eventLoop.newPromise(of: HiveMind.self)
 		DispatchQueue.global().async {
 			do {
@@ -75,39 +80,59 @@ class HiveMind {
 	/// - Parameters:
 	///   - eventLoop: the EventLoop to process the request with
 	func play(on eventLoop: EventLoop) -> Future<Movement> {
-		print("Asking HiveMind for movement...")
-		let movementPromise = eventLoop.newPromise(of: Movement.self)
+		let promise = eventLoop.newPromise(of: Movement.self)
 
-		// Update the current promise waiting for a response
-		if let previousMovementPromise = nextMovementPromise {
-			previousMovementPromise.fail(error: HiveMindError.noMovement)
+		self.onNextMovement?(.failure, nil)
+		self.onNextMovement = { response, error in
+			switch response {
+			case .failure, .invalidCommand:
+				if let error = error {
+					promise.fail(error: error)
+				} else {
+					promise.fail(error: HiveMindError.noMovement)
+				}
+			case .success:
+				promise.fail(error: HiveMindError.timing)
+			case .movement(let movement):
+				promise.succeed(result: movement)
+			}
 		}
 
-		let nextID = movementPromiseID + 1
-		movementPromiseID = nextID
-		nextMovementPromise = movementPromise
-
+		print("Asking HiveMind for movement...")
 		send(.play)
 
 		let explorationTime = configuration.explorationTime + 2
 		DispatchQueue.global().asyncAfter(deadline: .now() + explorationTime) { [weak self] in
 			guard let self = self else { return }
-			guard let currentMovementPromise = self.nextMovementPromise, nextID == self.movementPromiseID else { return }
-			currentMovementPromise.fail(error: HiveMindError.timeOut)
-			self.nextMovementPromise = nil
+			self.onNextMovement?(.failure, HiveMindError.timeOut)
+			self.onNextMovement = nil
 		}
 
-		return movementPromise.futureResult
+		return promise.futureResult
 	}
 
 	/// Forward a `Movement` to the HiveMind.
 	///
 	/// - Parameters:
 	///   - movement: the movement to apply, which should be valid in the HiveMind's current state.
-	///               If the movement is not valid, the HiveMind will fail silently.
-	func apply(movement: Movement) {
+	///   - eventLoop: `EventLoop` to return a Promise with when the HiveMind accepts the `Movement`
+	func apply(movement: Movement, on eventLoop: EventLoop) -> Future<Void> {
+		let promise = eventLoop.newPromise(of: Void.self)
+		self.onMovementResponse = { response in
+			switch response {
+			case .failure, .invalidCommand:
+				promise.fail(error: HiveMindError.movementRejected)
+			case .movement:
+				promise.fail(error: HiveMindError.timing)
+			case .success:
+				promise.succeed()
+			}
+		}
+
 		print("Applying movement `\(movement)")
 		send(.movement(movement))
+
+		return promise.futureResult
 	}
 
 	/// Close the current HiveMind process.
@@ -122,27 +147,23 @@ class HiveMind {
 	}
 
 	/// Write a message to the Socket for the HiveMind to received.
+	///
+	/// - Parameters:
+	///   - message: the message to send
 	private func send(_ message: SocketMessage) {
 		socket.send(message.description)
 	}
 
 	/// Handle a `SocketResponse` from the Socket and update the server appropriately.
+	///
+	/// - Parameters:
+	///   - response: a message from the WebSocket
 	private func handle(response: SocketResponse) {
-		switch response {
-		case .failure, .invalidCommand:
-			if let movementPromise = nextMovementPromise {
-				movementPromise.fail(error: HiveMindError.noMovement)
-				nextMovementPromise = nil
-			}
-		case .movement(let movement):
-			if let movementPromise = nextMovementPromise {
-				movementPromise.succeed(result: movement)
-				nextMovementPromise = nil
-			}
-		case .success:
-			// Does nothing
-			break
-		}
+		self.onNextMovement?(response, nil)
+		self.onNextMovement = nil
+
+		self.onMovementResponse?(response)
+		self.onMovementResponse = nil
 	}
 }
 
