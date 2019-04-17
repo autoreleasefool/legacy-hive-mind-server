@@ -14,10 +14,12 @@ final class HiveMindController {
 	private var hiveMind: HiveMind?
 
 	/// Creates a new instance of the HiveMind and begins a game
-	func new(_ req: Request) throws -> Future<HTTPStatus> {
-		return try req.content.decode(Initialization.self).map(to: HTTPStatus.self) { [weak self] initialization in
-			self?.hiveMind = try HiveMind(configuration: HiveMind.Configuration(isFirst: !initialization.playerIsFirst))
-			return .ok
+	func new(_ req: Request) throws -> Future<Future<HTTPStatus>> {
+		return try req.content.decode(Initialization.self).map { [weak self] initialization in
+			return HiveMind.start(initialization: initialization, eventLoop: req.eventLoop).map { hiveMind in
+				self?.hiveMind = hiveMind
+				return HTTPStatus.ok
+			}
 		}
 	}
 

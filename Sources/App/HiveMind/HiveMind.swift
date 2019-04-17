@@ -48,6 +48,22 @@ class HiveMind {
 		socket.onText { [weak self] ws, text in
 			self?.handle(response: SocketResponse.from(string: text))
 		}
+
+		send(.new(configuration.isFirst, configuration.explorationTime))
+	}
+
+	/// Create an instance of `HiveMind` and return the result as a `Future` on the given `EventLoop`
+	static func start(initialization: Initialization, eventLoop: EventLoop) -> Future<HiveMind> {
+		let promise = eventLoop.newPromise(of: HiveMind.self)
+		DispatchQueue.global().async {
+			do {
+				let hiveMind = try HiveMind(configuration: Configuration(isFirst: !initialization.playerIsFirst))
+				promise.succeed(result: hiveMind)
+			} catch {
+				promise.fail(error: error)
+			}
+		}
+		return promise.futureResult
 	}
 
 	deinit {
@@ -71,7 +87,7 @@ class HiveMind {
 		movementPromiseID = nextID
 		nextMovementPromise = movementPromise
 
-		send(message: .play)
+		send(.play)
 
 		let explorationTime = configuration.explorationTime + 2
 		DispatchQueue.global().asyncAfter(deadline: .now() + explorationTime) { [weak self] in
@@ -91,12 +107,13 @@ class HiveMind {
 	///               If the movement is not valid, the HiveMind will fail silently.
 	func apply(movement: Movement) {
 		print("Applying movement `\(movement)")
-		send(message: .movement(movement))
+		send(.movement(movement))
 	}
 
 	/// Close the current HiveMind process.
 	func close() {
 		if socket.isClosed == false {
+			send(.exit)
 			socket.close()
 			print("Began HiveMind socket termination")
 		}
@@ -105,7 +122,7 @@ class HiveMind {
 	}
 
 	/// Write a message to the Socket for the HiveMind to received.
-	private func send(message: SocketMessage) {
+	private func send(_ message: SocketMessage) {
 		socket.send(message.description)
 	}
 
