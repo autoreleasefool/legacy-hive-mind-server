@@ -32,10 +32,10 @@ class HiveMind {
 	private let configuration: Configuration
 
 	/// Callback for the next `Movement` returned from the HiveMind
-	private var onNextMovement: ((SocketResponse, Error?) -> Void)? = nil
+	private var onNextMovement: ((SocketResponse, Error?) -> Void)?
 
 	/// Callback for the next response from the HiveMind after sending a `Movement`
-	private var onMovementResponse: ((SocketResponse) -> Void)? = nil
+	private var onMovementResponse: ((SocketResponse) -> Void)?
 
 	init(configuration: Configuration = Configuration(isFirst: true)) throws {
 		self.group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
@@ -47,7 +47,7 @@ class HiveMind {
 			on: group
 		).wait()
 
-		socket.onText { [weak self] ws, text in
+		socket.onText { [weak self] _, text in
 			self?.handle(response: SocketResponse.from(string: text))
 		}
 
