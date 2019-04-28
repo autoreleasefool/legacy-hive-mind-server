@@ -139,8 +139,8 @@ class HiveMind {
 	/// Close the current HiveMind process.
 	func close() {
 		if socket.isClosed == false {
-			send(.exit)
-			socket.close()
+			send(.quitGame)
+			socket.close(code: .goingAway)
 			print("Began HiveMind socket termination")
 		}
 
@@ -172,7 +172,7 @@ enum SocketMessage: CustomStringConvertible {
 	case new(Bool, Double)
 	case play
 	case movement(Movement)
-	case exit
+	case quitGame
 
 	public var description: String {
 		switch self {
@@ -182,8 +182,8 @@ enum SocketMessage: CustomStringConvertible {
 			return "play"
 		case .movement(let movement):
 			return "move \(movement.json())"
-		case .exit:
-			return "exit"
+		case .quitGame:
+			return "quit"
 		}
 	}
 }
